@@ -1,10 +1,11 @@
 import mujoco
 from mujoco import viewer
+from PIL import Image
 
 scene = """
 <mujoco model = "test_scene">
     <worldbody>
-        <geom type="plane" size="3 3 0.1" rgba="0.9 0.9 0.9 1"/>
+        <geom type="plane" size="3 3 0.1" rgba="0.6 0.6 0.6 1"/>
         <body name="table" pos="0 0 0.98">
             <geom name="top" type="box" size="0.5 0.5 0.02" rgba="0.7 0.5 0.3 1"/>
             <geom name="leg_fl" type="box" size="0.03 0.03 0.48" pos=" 0.45  0.45 -0.50" rgba="0.7 0.5 0.3 1"/>
@@ -15,19 +16,30 @@ scene = """
         <body name="block" pos="0 0 1.05">
             <geom type="box" size="0.05 0.05 0.05" rgba="0.2 0.5 0.8 1"/>
         </body>
+        <light name="soft_sun" pos="0 0 3" dir="0 0 -1"
+            castshadow="true" directional="true"
+            ambient="0.1 0.1 0.1" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1"/>
+        <camera name="front" pos="1.5 0 1.75" euler="0 70 90"/>
     </worldbody>
 </mujoco>
 """
-
 def main():
     model = mujoco.MjModel.from_xml_string(scene)
     data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    renderer = mujoco.Renderer(model, width = 640, height = 480)
 
+    renderer.update_scene(data, camera="front")
+    rgb = renderer.render()
+    Image.fromarray(rgb).save("images/static_snapshot.png")
+
+    # open viewer
     print("Opening viewer")
     with viewer.launch_passive(model, data) as view:
         view.cam.lookat[:] = (0.0, 0.0, 1.0)
         view.cam.distance = 2.0
-        view.cam.elevation = -40.0
+        view.cam.elevation = -35.0
+        view.cam.azimuth = 45.0
         while view.is_running():
             view.sync()
     print("Viewer closed")
