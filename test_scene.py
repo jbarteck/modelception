@@ -27,22 +27,21 @@ scene = """
             ambient="0.1 0.1 0.1" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1"/>
         <camera name="front" pos="1.5 0 1.75" euler="0 70 90"/>
     </worldbody>
+    <default>
+        <geom friction="1 0.1 0.01"/>
+    </default>
 </mujoco>
 """
 def main():
     model = mujoco.MjModel.from_xml_string(scene)
     data = mujoco.MjData(model)
 
-    ball_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "sphere_free")
-    ball_qpos = model.jnt_qposadr[ball_id] 
-    data.qpos[ball_qpos:ball_qpos+7] = [0.2, 0, 2.0, 1, 0, 0, 0]
+    block_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "block_free")
+    block_qvel = model.jnt_dofadr[block_id]
+    data.qvel[block_qvel:block_qvel+6] = [0, 3, 0, 10, 0, 0]  # give the block some initial angular velocity
 
     mujoco.mj_forward(model, data)
     renderer = mujoco.Renderer(model, width = 640, height = 480)
-
-    #print("sphere qpos:", data.qpos[ball_qpos:ball_qpos+7])
-    #bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "sphere")
-    #print("sphere body xpos:", data.xpos[bid]) 
 
     ### uncomment code below to take static snapshot from front perspective of table
 
@@ -52,7 +51,7 @@ def main():
 
     # open viewer
     print("Opening viewer")
-    target_fps = 60
+    target_fps = 90
     with viewer.launch_passive(model, data) as view:
         view.cam.lookat[:] = (0.0, 0.0, 1.4)
         view.cam.distance = 2.0
