@@ -1,6 +1,7 @@
 import mujoco
 from mujoco import viewer
 from PIL import Image
+import time
 
 scene = """
 <mujoco model = "test_scene">
@@ -14,7 +15,12 @@ scene = """
             <geom name="leg_br" type="box" size="0.03 0.03 0.48" pos="-0.45 -0.45 -0.50" rgba="0.7 0.5 0.3 1"/>
         </body>
         <body name="block" pos="0 0 1.05">
+            <freejoint name="block_free"/>
             <geom type="box" size="0.05 0.05 0.05" rgba="0.2 0.5 0.8 1"/>
+        </body>
+        <body name="sphere" pos="0.2 0 2.0">
+            <joint type="free"/>
+            <geom type="sphere" size="0.05" rgba="0.8 0.3 0.3 1"/>
         </body>
         <light name="soft_sun" pos="0 0 3" dir="0 0 -1"
             castshadow="true" directional="true"
@@ -26,22 +32,36 @@ scene = """
 def main():
     model = mujoco.MjModel.from_xml_string(scene)
     data = mujoco.MjData(model)
+
+    ball_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "sphere_free")
+    ball_qpos = model.jnt_qposadr[ball_id] 
+    data.qpos[ball_qpos:ball_qpos+7] = [0.2, 0, 2.0, 1, 0, 0, 0]
+
     mujoco.mj_forward(model, data)
     renderer = mujoco.Renderer(model, width = 640, height = 480)
 
-    renderer.update_scene(data, camera="front")
-    rgb = renderer.render()
-    Image.fromarray(rgb).save("images/static_snapshot.png")
+    #print("sphere qpos:", data.qpos[ball_qpos:ball_qpos+7])
+    #bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "sphere")
+    #print("sphere body xpos:", data.xpos[bid]) 
+
+    ### uncomment code below to take static snapshot from front perspective of table
+
+    # renderer.update_scene(data, camera="front")
+    # rgb = renderer.render()
+    # Image.fromarray(rgb).save("images/static_snapshot.png")
 
     # open viewer
     print("Opening viewer")
+    target_fps = 60
     with viewer.launch_passive(model, data) as view:
-        view.cam.lookat[:] = (0.0, 0.0, 1.0)
+        view.cam.lookat[:] = (0.0, 0.0, 1.4)
         view.cam.distance = 2.0
         view.cam.elevation = -35.0
         view.cam.azimuth = 45.0
         while view.is_running():
+            mujoco.mj_step(model, data)
             view.sync()
+            time.sleep(1 / target_fps)
     print("Viewer closed")
 
 main() # main block implemented to avoid stuck terminal error
